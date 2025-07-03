@@ -1,0 +1,74 @@
+services:
+  laravel:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: jason-handles-tech
+    working_dir: /var/www/html
+    volumes:
+      - ./src:/var/www/html
+    ports:
+      - "8001:8000" # Odd port to avoid conflicts with other containers.
+    environment:
+      LARAVEL_SAIL: truemk
+
+      # Optional Laravel SMTP/database envs
+      # Values are pulled from the .env file
+      APP_NAME: ${APP_NAME} 
+      APP_ENV: ${APP_ENV}  # local, production, etc.
+      APP_DEBUG: ${APP_DEBUG} # true or false
+      APP_URL: ${APP_URL}
+      DB_CONNECTION: ${DB_CONNECTION} # What type of database you want to use. mysql, nosql, etc.
+      DB_HOST: ${DB_CONNECTION} # The host of the database, usually localhost or the service name
+      DB_DATABASE: ${MYSQL_DATABASE}
+      DB_USERNAME: ${MYSQL_USER}
+      DB_PASSWORD: ${MYSQL_PASSWORD}
+      MAIL_MAILER: ${MAIL_MAILER} # The mail driver to use, e.g., smtp, sendmail, etc.
+      MAIL_HOST: ${MAIL_HOST}
+      MAIL_PORT: ${MAIL_PORT}
+      MAIL_USERNAME: ${MAIL_USERNAME}
+      MAIL_PASSWORD: ${MAIL_PASSWORD}
+      MAIL_ENCRYPTION: ${MAIL_ENCRYPTION}
+    networks:
+      - external_proxy_net
+    restart: unless-stopped
+
+  mysql:
+    image: mysql:8.0
+    container_name: jason-handles-tech-mysql
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+    volumes:
+      - dbdata:/var/lib/mysql
+    ports:
+      - "3301:3306" # MySQL is exposed on an odd port to avoid conflicts with other containers. 
+    networks:
+      - external_proxy_net
+    restart: unless-stopped
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: jason-handles-tech-phpmyadmin
+    depends_on:
+      mysql:
+        condition: service_started
+    ports:
+      - "8081:80"
+    environment:
+      PMA_HOST: mysql
+      PMA_USER: ${MYSQL_USER}
+      PMA_PASSWORD: ${MYSQL_PASSWORD}
+    networks:
+      - external_proxy_net
+    restart: unless-stopped
+
+volumes:
+  dbdata:
+
+networks:
+  external_proxy_net:
+    external: true
+    name: proxy
